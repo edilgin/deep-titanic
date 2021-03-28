@@ -1,7 +1,9 @@
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
-#binary classification using a modular deep neural network
+
+# binary classification using a modular deep neural network
+
 
 def loadData():
     pd.set_option('display.max_columns', None)
@@ -46,6 +48,7 @@ def loadData():
     X_test = X_test.replace({"Sex":dict})
     return np.array(X_train).T, np.array(Y_train).T, np.array(X_test).T, np.array(Y_test).T
 
+
 def xaiverInit(layer_dims,activation_func):
     parameters = {}
     for i in range(1,len(layer_dims)):
@@ -56,6 +59,7 @@ def xaiverInit(layer_dims,activation_func):
         parameters["W" + str(i)] = np.random.randn(layer_dims[i],layer_dims[i-1]) * np.sqrt(activation / layer_dims[i-1])
         parameters["b" + str(i)] = np.zeros([layer_dims[i],1])
     return parameters
+
 
 def sigmoid(Z):
     return 1 / (1 + np.exp(-Z))
@@ -79,6 +83,7 @@ def compute_cost(A_last,Y):
     cross_ent_cost = -(1/m) * np.sum(Y * np.log(A_last) + (1-Y) * np.log(1 - A_last))
     return cross_ent_cost
 
+
 def predict(X_test,Y_test,parameters,activation_funcs):
     cache = forward_prop(X_test,parameters,activation_funcs)
     prediction = cache["A" + str(len(cache)//2)]
@@ -92,6 +97,7 @@ def predict(X_test,Y_test,parameters,activation_funcs):
     error = error[~np.isnan(error)]
     return np.sum(error) /len(error)
 
+
 def forward_prop(X, parameters, activation_funcs):
     cache = {"A0": X}
     for i in range(1, (len(parameters)//2) + 1):
@@ -101,6 +107,7 @@ def forward_prop(X, parameters, activation_funcs):
         elif activation_funcs[i-1] == "sigmoid":
             cache["A" + str(i)] = sigmoid(cache["Z" + str(i)])
     return cache
+
 
 def calc_gradient(cache,parameters,activation_funcs,Y):
     m = len(Y)
@@ -116,11 +123,13 @@ def calc_gradient(cache,parameters,activation_funcs,Y):
             grads["db" + str(i)] = (1/m) * np.sum(grads["dZ" + str(i)],axis=1,keepdims=True)
     return grads
 
+
 def back_prop(grads,parameters,learning_rate):
     for i in range(1,(len(parameters) // 2)+1):
         parameters["W" + str(i)] = parameters["W" + str(i)] - learning_rate * grads["dW" + str(i)]
         parameters["b" + str(i)] = parameters["b" + str(i)] - learning_rate * grads["db" + str(i)]
     return parameters
+
 
 def initialize_velocity(layer_dims):
     V = {}
@@ -128,6 +137,7 @@ def initialize_velocity(layer_dims):
         V["Vdw" + str(i)] = np.zeros([layer_dims[i],layer_dims[i-1]])
         V["Vdb" + str(i)] = np.zeros([layer_dims[i],1])
     return V
+
 
 def back_prop_momentum(velocities, grads,parameters,learning_rate,beta = 0.9):
     for i in range(1, (len(parameters) // 2) + 1):
@@ -155,7 +165,7 @@ def RMSprop(s_val, velocities, grads,parameters,learning_rate,beta = 0.999,epsil
     return parameters, s_val
 
 
-def ADAM_optimizer(velocities, s_val, grads,parameters,learning_rate,iteration,beta1 = 0.9, beta2 = 0.999, epsilon=10e-8):
+def ADAM_optimizer(velocities, s_val, grads,parameters,learning_rate,iteration,beta1=0.9, beta2=0.999, epsilon=10e-8):
     velocities_corrected = {}
     s_corrected = {}
     for i in range(1, (len(parameters) // 2) + 1):
@@ -163,9 +173,9 @@ def ADAM_optimizer(velocities, s_val, grads,parameters,learning_rate,iteration,b
         velocities["Vdb" + str(i)] = beta1 * velocities["Vdb" + str(i)] + (1 - beta1) * grads["db" + str(i)]
         s_val["Sdw" + str(i)] = beta2 * s_val["Sdw" + str(i)] + (1 - beta2) * (grads["dW" + str(i)]**2)
         s_val["Sdb" + str(i)] = beta2 * s_val["Sdb" + str(i)] + (1 - beta2) * (grads["db" + str(i)]**2)
-        velocities_corrected["Vdw" + str(i)] = velocities["Vdw" + str(i)] / (1 - beta1** iteration)
+        velocities_corrected["Vdw" + str(i)] = velocities["Vdw" + str(i)] / (1 - beta1 ** iteration)
         velocities_corrected["Vdb" + str(i)] = velocities["Vdb" + str(i)] / (1 - beta1 ** iteration)
-        s_corrected["Sdw" + str(i)] = s_val["Sdw" + str(i)]  / (1 - beta2 ** iteration)
+        s_corrected["Sdw" + str(i)] = s_val["Sdw" + str(i)] / (1 - beta2 ** iteration)
         s_corrected["Sdb" + str(i)] = s_val["Sdb" + str(i)] / (1 - beta2 ** iteration)
         parameters["W" + str(i)] -= learning_rate * (velocities_corrected["Vdw" + str(i)] / np.sqrt(s_corrected["Sdw" + str(i)]+epsilon))
         parameters["b" + str(i)] -= learning_rate * (velocities_corrected["Vdb" + str(i)] / np.sqrt(s_corrected["Sdb" + str(i)]+epsilon))
@@ -175,24 +185,33 @@ def ADAM_optimizer(velocities, s_val, grads,parameters,learning_rate,iteration,b
 def NeuralNet(layer_dims,activation_funcs,iterations,learning_rate):
     X_train, Y_train, X_test, Y_test = loadData()
     parameters = xaiverInit(layer_dims, activation_funcs)
-    Velocities = initialize_velocity(layer_dims)            # initialize V's as zeros
+    Velocities = initialize_velocity(layer_dims)
     S = initialize_rms(layer_dims)
     cost_list = []
     for i in range(1,iterations):
         cache = forward_prop(X_train, parameters,activation_funcs)
         cost = compute_cost(cache["A"+str(len(cache)//2)], Y_train)
         grads = calc_gradient(cache,parameters,activation_funcs,Y_train)
+
+        # if you want to use these optimizers just comment out the ADAM optimizer and use the optimizer you wish to use
         #parameters = back_prop(grads,parameters,learning_rate)
         #parameters,Velocities = back_prop_momentum(Velocities,grads,parameters,learning_rate)
         #parameters, S = RMSprop(S,grads,parameters,learning_rate)
+
+        # i found out that ADAM optimizer works best for this problem
         parameters,S, Velocities = ADAM_optimizer(Velocities,S,grads,parameters,learning_rate,i)
         cost_list.append(cost)
         print(cost)
-    hata = predict(X_test,Y_test,parameters,activation_funcs)
-    print(hata)
+
+    test_error = predict(X_test,Y_test,parameters,activation_funcs)
+    print("ERROR IN TEST DATA: ", test_error)
     return cost_list
 
-cost_list = NeuralNet([4,20,20,10, 1], ["relu", "relu","relu", "sigmoid"],iterations=6000, learning_rate=0.0003)
+# if you want to change the layer size do it from below here
+# if you change the layer size dont forget to add the corresponding activation function to it
+cost_list = NeuralNet([4,30,30, 1], ["relu", "relu", "sigmoid"],iterations=3000, learning_rate=0.0005)
+
+# showing training error as a graph
 X = []
 for i in range(len(cost_list)):
     X.append(i)
